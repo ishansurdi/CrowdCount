@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Portal | CrowdCount</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-main: #fcfcfd;
+            --surface: #ffffff;
+            --border: #eaecf0;
+            --border-strong: #d0d5dd;
+            --text-primary: #101828;
+            --text-secondary: #475467;
+            --text-tertiary: #667085;
+            --accent: #444ce7;
+            --accent-soft: #eef4ff;
+            --accent-hover: #3538cd;
+            --success: #067647;
+            --success-bg: #ecfdf3;
+            --danger: #b42318;
+            --danger-bg: #fef3f2;
+            --warning: #b54708;
+            --warning-bg: #fffaeb;
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --shadow-sm: 0px 1px 2px rgba(16, 24, 40, 0.05);
+            --shadow-md: 0px 4px 6px -2px rgba(16, 24, 40, 0.03), 0px 12px 16px -4px rgba(16, 24, 40, 0.08);
+            font-family: 'Inter', -apple-system, sans-serif;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+        body { background-color: var(--bg-main); color: var(--text-primary); line-height: 1.5; padding: 2rem; }
+        .dashboard-container { max-width: 1600px; margin: 0 auto; }
+        
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 2px solid var(--border); }
+        .header-title h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; display: flex; align-items: center; gap: 12px; }
+        .header-title h1::before { content: '🔐'; font-size: 1.5rem; }
+        .header-title p { color: var(--text-secondary); font-size: 0.875rem; margin-top: 4px; }
+        .user-info { display: flex; align-items: center; gap: 1rem; }
+        .user-badge { background: var(--accent-soft); color: var(--accent); padding: 0.5rem 1rem; border-radius: var(--radius-sm); font-weight: 600; font-size: 0.875rem; }
+        .btn-logout { padding: 0.5rem 1rem; background: var(--danger); color: white; border: none; border-radius: var(--radius-sm); cursor: pointer; font-weight: 500; }
+        
+        .dashboard-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1.5rem; }
+        .col-12 { grid-column: span 12; }
+        .col-8 { grid-column: span 8; }
+        .col-4 { grid-column: span 4; }
+        .col-6 { grid-column: span 6; }
+        .col-3 { grid-column: span 3; }
+        
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.5rem; box-shadow: var(--shadow-sm); }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
+        .card-header h2 { font-size: 1.125rem; font-weight: 600; color: var(--text-primary); }
+        
+        .metric-main { font-size: 3rem; font-weight: 700; color: var(--text-primary); line-height: 1; }
+        .metric-sub { color: var(--text-tertiary); font-size: 0.875rem; margin-top: 0.5rem; }
+        .status-badge { padding: 4px 10px; border-radius: 100px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
+        
+        .btn-primary { padding: 0.75rem 1.5rem; background: var(--accent); color: white; border: none; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; transition: all 0.2s; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-outline { padding: 0.75rem 1.5rem; background: transparent; color: var(--accent); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; font-weight: 500; transition: all 0.2s; }
+        .btn-outline:hover { background: var(--accent-soft); }
+        
+        .zone-mini-list { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; }
+        .zone-item { display: flex; justify-content: space-between; padding: 0.5rem; background: var(--bg-main); border-radius: var(--radius-sm); }
+        .zone-name { color: var(--text-secondary); font-size: 0.875rem; }
+        .zone-val { color: var(--text-primary); font-weight: 600; font-size: 0.875rem; }
+        
+        .status-row { display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid var(--border); }
+        .status-label { color: var(--text-secondary); font-size: 0.875rem; }
+        .status-value { color: var(--text-primary); font-weight: 600; font-size: 0.875rem; }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 0.75rem; border-bottom: 2px solid var(--border); color: var(--text-secondary); font-weight: 600; font-size: 0.875rem; }
+        td { padding: 1rem 0.75rem; border-bottom: 1px solid var(--border); }
+        
+        .input-group { display: flex; flex-direction: column; gap: 0.5rem; }
+        .input-group label { font-weight: 600; color: var(--text-secondary); font-size: 0.875rem; }
+        .input-group input, .input-group select { padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 1rem; }
+        
+        .alert-popup { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center; }
+        .alert-popup.visible { display: flex; }
+        .alert-content { background: white; padding: 2rem; border-radius: var(--radius-lg); max-width: 600px; width: 90%; box-shadow: var(--shadow-md); }
+        
+        canvas { max-height: 300px; }
+        
+        /* Video Canvas Specific */
+        #video-canvas {
+            max-height: none !important;
+            min-height: 500px;
+            background: #000 !important;
+            border: 3px solid var(--accent) !important;
+            border-radius: var(--radius-md);
+            width: 100% !important;
+            height: auto;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            z-index: 1 !important;
+        }
+        
+        #zone-canvas {
+            max-height: none !important;
+            background: #000;
+            border: 1px solid var(--border);
+        }
+        
+        /* Toggle Switch */
+        .switch { 
+            position: relative; 
+            display: inline-block; 
+            width: 50px; 
+            height: 26px; 
+            vertical-align: middle;
+        }
+        .switch input { 
+            opacity: 0; 
+            width: 0; 
+            height: 0; 
+        }
+        .slider { 
+            position: absolute; 
+            cursor: pointer; 
+            top: 0; 
+            left: 0; 
+            right: 0; 
+            bottom: 0; 
+            background-color: #d0d5dd; 
+            transition: .4s; 
+            border-radius: 26px; 
+        }
+        .slider:before { 
+            position: absolute; 
+            content: ""; 
+            height: 20px; 
+            width: 20px; 
+            left: 3px; 
+            bottom: 3px; 
+            background-color: white; 
+            transition: .4s; 
+            border-radius: 50%; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        input:checked + .slider { 
+            background-color: #067647; 
+        }
+        input:checked + .slider:before { 
+            transform: translateX(24px); 
+        }
+        input:focus + .slider {
+            box-shadow: 0 0 1px #067647;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <header>
+            <div class="header-title">
+                <div>
+                    <h1>Admin Portal</h1>
+                    <p>Complete system control and user management</p>
+                </div>
+            </div>
+            <div class="user-info">
+                <span class="user-badge" id="user-name">Admin</span>
+                <button class="btn-logout" onclick="logout()">Logout</button>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav style="background: var(--surface); border-bottom: 2px solid var(--border); margin-bottom: 2rem; padding: 0; border-radius: var(--radius-md); overflow: hidden;">
+            <div style="display: flex; gap: 0;">
+                <button onclick="switchTab('cameras')" id="tab-cameras" class="nav-tab active" style="flex: 1; padding: 1rem 1.5rem; border: none; background: var(--accent); color: white; font-weight: 600; cursor: pointer; transition: all 0.3s;">Camera Management</button>
+                <button onclick="switchTab('zones')" id="tab-zones" class="nav-tab" style="flex: 1; padding: 1rem 1.5rem; border: none; background: var(--surface); color: var(--text-primary); font-weight: 600; cursor: pointer; transition: all 0.3s;">Zones Management</button>
+                <button onclick="switchTab('users')" id="tab-users" class="nav-tab" style="flex: 1; padding: 1rem 1.5rem; border: none; background: var(--surface); color: var(--text-primary); font-weight: 600; cursor: pointer; transition: all 0.3s;">User Management</button>
+                <button onclick="switchTab('analytics')" id="tab-analytics" class="nav-tab" style="flex: 1; padding: 1rem 1.5rem; border: none; background: var(--surface); color: var(--text-primary); font-weight: 600; cursor: pointer; transition: all 0.3s;">Analytics</button>
+                <button onclick="switchTab('settings')" id="tab-settings" class="nav-tab" style="flex: 1; padding: 1rem 1.5rem; border: none; background: var(--surface); color: var(--text-primary); font-weight: 600; cursor: pointer; transition: all 0.3s;">Settings</button>
+            </div>
+        </nav>
+
+        <main class="dashboard-grid">
+            
+            <!-- Camera Management -->
+            <div class="card col-12" id="section-cameras">
+                <div class="card-header">
+                    <h2>Camera Feed Management</h2>
+                    <button class="btn-primary" onclick="openCameraModal()">Add Camera Feed</button>
+                </div>
+                <div id="cameras-table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Area Name</th>
+                                <th>Video Source</th>
+                                <th>Status</th>
+                                <th>Zones</th>
+                                <th>Visible to Users</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cameras-table-body">
+                            <tr><td colspan="6" style="text-align: center; padding: 2rem;">Loading cameras...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Zones Management by Area -->
+            <div class="card col-12" id="section-zones" style="display: none;">
+                <div class="card-header">
+                    <h2>Zones Management</h2>
+                    <button class="btn-primary" onclick="syncAllZones()" style="background: var(--success); margin-right: 0.5rem;">🔄 Sync All to Files</button>
+                </div>
+                <div id="zones-management-container" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                    <!-- Entrance Area Zones -->
+                    <div class="area-zones-section">
+                        <div style="background: var(--accent-soft); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+                            <h3 style="margin: 0; color: var(--accent); font-size: 1.125rem;">Mall Entrance</h3>
+                            <button onclick="configureZones('entrance')" class="btn-primary">Add Zones</button>
+                        </div>
+                        <div id="zones-entrance" class="zones-list">
+                            <p style="color: var(--text-tertiary); padding: 1rem;">No zones configured</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Retail Area Zones -->
+                    <div class="area-zones-section">
+                        <div style="background: var(--success-bg); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+                            <h3 style="margin: 0; color: var(--success); font-size: 1.125rem;">Retail Area</h3>
+                            <button onclick="configureZones('retail')" class="btn-primary">Add Zones</button>
+                        </div>
+                        <div id="zones-retail" class="zones-list">
+                            <p style="color: var(--text-tertiary); padding: 1rem;">No zones configured</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Food Court Zones -->
+                    <div class="area-zones-section">
+                        <div style="background: var(--warning-bg); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+                            <h3 style="margin: 0; color: var(--warning); font-size: 1.125rem;">Food Court</h3>
+                            <button onclick="configureZones('foodcourt')" class="btn-primary">Add Zones</button>
+                        </div>
+                        <div id="zones-foodcourt" class="zones-list">
+                            <p style="color: var(--text-tertiary); padding: 1rem;">No zones configured</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- User Management -->
+            <div class="card col-12" id="section-users" style="display: none;">
+                <div class="card-header">
+                    <h2>User Management</h2>
+                    <button class="btn-primary" onclick="openUserModal()">Add New User</button>
+                </div>
+                <div id="users-table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Assigned Areas</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-table-body">
+                            <tr><td colspan="5" style="text-align: center; padding: 2rem;">Loading users...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Global notification toast (fixed position, always visible) -->
+            <div id="threshold-status" style="position: fixed; top: 80px; right: 20px; width: 400px; padding: 1rem; border-radius: 8px; display: none; font-weight: 600; text-align: center; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-size: 16px; min-height: 60px;">
+                <span id="threshold-status-text"></span>
+            </div>
+
+            <!-- Global Threshold Config -->
+            <div class="card col-12" id="section-settings" style="display: none;">
+                <div class="card-header">
+                    <h2>Global Threshold Configuration</h2>
+                    <p style="margin: 0; font-size: 0.875rem; color: var(--text-secondary);">Set the maximum people count before alerts are triggered</p>
+                </div>
+                <div style="display: flex; gap: 1rem; align-items: end;">
+                    <div class="input-group" style="flex: 1;">
+                        <label>People Count Threshold (Applies to All Areas)</label>
+                        <input type="number" id="threshold-global" value="50" min="1" placeholder="Enter threshold value">
+                    </div>
+                    <button class="btn-primary" onclick="updateThreshold()" style="height: 44px;">Apply Threshold</button>
+                </div>
+                <div style="margin-top: 1.5rem; padding: 1rem; background: var(--bg-main); border-radius: var(--radius-sm);">
+                    <h4 style="font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-secondary);">Current Status</h4>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: var(--text-primary);">Active Threshold:</span>
+                        <strong id="current-threshold-display" style="color: var(--accent); font-size: 1.25rem;">50</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Areas -->
+            <div class="card col-4" id="section-analytics" style="display: none;">
+                <div class="card-header">
+                    <h2>Mall Entrance</h2>
+                    <span class="status-badge" id="badge-entrance">Normal</span>
+                </div>
+                <div class="metric-main" id="count-entrance">0</div>
+                <div class="metric-sub">Total People Count</div>
+                <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                    <h4 style="font-size: 0.875rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.75rem;">Zone Breakdown</h4>
+                    <div class="zone-mini-list" id="zone-breakdown-entrance">
+                        <div class="zone-item"><span class="zone-name">No data</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card col-4" id="section-analytics-2" style="display: none;">
+                <div class="card-header">
+                    <h2>Retail Area</h2>
+                    <span class="status-badge" id="badge-retail">Normal</span>
+                </div>
+                <div class="metric-main" id="count-retail">0</div>
+                <div class="metric-sub">Total People Count</div>
+                <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                    <h4 style="font-size: 0.875rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.75rem;">Zone Breakdown</h4>
+                    <div class="zone-mini-list" id="zone-breakdown-retail">
+                        <div class="zone-item"><span class="zone-name">No data</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card col-4" id="section-analytics-3" style="display: none;">
+                <div class="card-header">
+                    <h2>Food Court</h2>
+                    <span class="status-badge" id="badge-foodcourt">Normal</span>
+                </div>
+                <div class="metric-main" id="count-foodcourt">0</div>
+                <div class="metric-sub">Total People Count</div>
+                <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                    <h4 style="font-size: 0.875rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.75rem;">Zone Breakdown</h4>
+                    <div class="zone-mini-list" id="zone-breakdown-foodcourt">
+                        <div class="zone-item"><span class="zone-name">No data</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="card col-8" id="section-analytics-chart" style="display: none;">
+                <div class="card-header">
+                    <h2>Zone Distribution</h2>
+                </div>
+                <canvas id="zoneChart"></canvas>
+            </div>
+
+            <div class="card col-4" id="section-analytics-diag" style="display: none;">
+                <div class="card-header">
+                    <h2>System Diagnostics</h2>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">API Gateway</span>
+                    <span class="status-value" id="api-status">Connecting...</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Total Records</span>
+                    <span class="status-value" id="total-records">0</span>
+                </div>
+                <div style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 12px;">
+                    <button class="btn-outline" onclick="exportCSV('entrance')">Export Entrance CSV</button>
+                    <button class="btn-outline" onclick="exportCSV('retail')">Export Retail CSV</button>
+                    <button class="btn-outline" onclick="exportCSV('foodcourt')">Export Food Court CSV</button>
+                </div>
+            </div>
+
+            <div class="card col-12" id="section-analytics-history" style="display: none;">
+                <div class="card-header">
+                    <h2>Historical Trends</h2>
+                </div>
+                <canvas id="historyChart"></canvas>
+            </div>
+
+            <!-- Heatmaps Section -->
+            <div class="card col-12" id="section-analytics-heatmaps" style="display: none;">
+                <div class="card-header">
+                    <h2>Crowd Density Heatmaps</h2>
+                    <p style="margin: 0; font-size: 0.875rem; color: var(--text-secondary);">Visual representation of crowd distribution across zones</p>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 1.5rem;">
+                    <!-- Entrance Heatmap -->
+                    <div>
+                        <h3 style="font-size: 1rem; margin-bottom: 1rem; color: var(--accent);">Mall Entrance</h3>
+                        <div style="position: relative; background: var(--bg-main); border-radius: var(--radius-sm); overflow: hidden;">
+                            <canvas id="heatmap-entrance" width="400" height="300"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Retail Heatmap -->
+                    <div>
+                        <h3 style="font-size: 1rem; margin-bottom: 1rem; color: var(--success);">Retail Area</h3>
+                        <div style="position: relative; background: var(--bg-main); border-radius: var(--radius-sm); overflow: hidden;">
+                            <canvas id="heatmap-retail" width="400" height="300"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Foodcourt Heatmap -->
+                    <div>
+                        <h3 style="font-size: 1rem; margin-bottom: 1rem; color: var(--warning);">Food Court</h3>
+                        <div style="position: relative; background: var(--bg-main); border-radius: var(--radius-sm); overflow: hidden;">
+                            <canvas id="heatmap-foodcourt" width="400" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Heatmap Legend -->
+                <div style="margin-top: 1.5rem; padding: 1rem; background: var(--bg-main); border-radius: var(--radius-sm); display: flex; align-items: center; gap: 1rem;">
+                    <span style="font-size: 0.875rem; font-weight: 600; color: var(--text-secondary);">Density:</span>
+                    <div style="flex: 1; height: 20px; background: linear-gradient(to right, rgba(0,255,0,0.3), rgba(255,255,0,0.5), rgba(255,128,0,0.7), rgba(255,0,0,0.9)); border-radius: 4px;"></div>
+                    <div style="display: flex; gap: 2rem; font-size: 0.75rem; color: var(--text-tertiary);">
+                        <span>Low</span>
+                        <span>Medium</span>
+                        <span>High</span>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- User Modal -->
+    <div id="user-modal" class="alert-popup">
+        <div class="alert-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3 id="modal-title">Add New User</h3>
+                <button onclick="closeUserModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+            <form id="user-form" onsubmit="saveUser(event)">
+                <input type="hidden" id="user-id">
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div class="input-group">
+                        <label>Name</label>
+                        <input type="text" id="modal-user-name" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Email</label>
+                        <input type="email" id="modal-user-email" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Password</label>
+                        <input type="password" id="modal-user-password">
+                        <small style="color: var(--text-tertiary);">Leave blank to keep existing</small>
+                    </div>
+                    <div class="input-group">
+                        <label>Role</label>
+                        <select id="modal-user-role" required>
+                            <option value="user">User</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Assign Areas</label>
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem; background: var(--bg-main); border-radius: var(--radius-sm);">
+                            <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                <input type="checkbox" name="area" value="entrance"> Mall Entrance
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                <input type="checkbox" name="area" value="retail"> Retail Area
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                <input type="checkbox" name="area" value="foodcourt"> Food Court
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                    <button type="submit" class="btn-primary" style="flex: 1;">Save User</button>
+                    <button type="button" onclick="closeUserModal()" class="btn-outline" style="flex: 1;">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Camera Feed Modal -->
+    <div id="camera-modal" class="alert-popup">
+        <div class="alert-content" style="max-width: 700px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3 id="camera-modal-title">Add Camera Feed</h3>
+                <button onclick="closeCameraModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+            <form id="camera-form" onsubmit="saveCamera(event)">
+                <input type="hidden" id="camera-id">
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div class="input-group">
+                        <label>Area Name</label>
+                        <input type="text" id="camera-area" required placeholder="e.g., entrance, lobby, parking">
+                        <small style="color: var(--text-tertiary);">Use lowercase, no spaces (use underscores)</small>
+                    </div>
+                    <div class="input-group">
+                        <label>Display Name</label>
+                        <input type="text" id="camera-display" required placeholder="e.g., Main Entrance">
+                    </div>
+                    <div class="input-group">
+                        <label>Video Source</label>
+                        <input type="text" id="camera-source" required placeholder="youtube-videos/video.mp4 or rtsp://...">
+                        <small style="color: var(--text-tertiary);">Local file path or RTSP stream URL</small>
+                    </div>
+                    <div class="input-group">
+                        <label>Model Type</label>
+                        <select id="camera-model" required>
+                            <option value="yolo">YOLO (Default)</option>
+                            <option value="detectron">Detectron2</option>
+                            <option value="opencv">OpenCV Cascade</option>
+                        </select>
+                    </div>
+                    <div class="input-group" style="display: flex; align-items: center; gap: 1rem;">
+                        <input type="checkbox" id="camera-visible" checked style="width: auto; margin: 0;">
+                        <label for="camera-visible" style="margin: 0;">Visible to Regular Users</label>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                    <button type="submit" class="btn-primary" style="flex: 1;">Save Camera</button>
+                    <button type="button" onclick="closeCameraModal()" class="btn-outline" style="flex: 1;">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Zone Configuration Modal -->
+    <div id="zone-modal" class="alert-popup">
+        <div class="alert-content" style="max-width: 1200px; max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3>Visual Zone Editor: <span id="zone-area-name"></span></h3>
+                <button onclick="closeZoneModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+            
+            <!-- Visual Canvas Editor -->
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                <div style="background: #000; border-radius: var(--radius-sm); position: relative;">
+                    <!-- Video Background for Zone Drawing -->
+                    <video 
+                        id="zone-video-player" 
+                        autoplay 
+                        loop 
+                        muted 
+                        playsinline
+                        style="width: 100%; height: auto; display: block; background: #000;">
+                        <source src="http://127.0.0.1:5000/videos/enterance.mp4" type="video/mp4">
+                    </video>
+                    
+                    <!-- Canvas Overlay for Drawing Zones -->
+                    <canvas id="zone-canvas" width="1280" height="720" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: crosshair;"></canvas>
+                    
+                    <!-- Instructions -->
+                    <div style="position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.8); color: white; padding: 8px 12px; border-radius: 5px; font-size: 0.75rem; z-index: 10;">
+                        <div><strong>Draw Mode:</strong> Click 4 corners to create rectangle</div>
+                        <div><strong>Edit Mode:</strong> Click zone to select, drag corners to adjust</div>
+                        <div><strong>Delete:</strong> Select zone and press Delete key</div>
+                    </div>
+                </div>
+                <div>
+                    <div style="margin-bottom: 1rem;">
+                        <button type="button" onclick="startDrawingZone()" class="btn-primary" style="width: 100%; margin-bottom: 0.5rem;">Draw New Zone</button>
+                        <button type="button" onclick="clearSelectedZone()" class="btn-outline" style="width: 100%; margin-bottom: 0.5rem;">Delete Selected</button>
+                        <button type="button" onclick="clearAllZones()" class="btn-outline" style="width: 100%;">Clear All Zones</button>
+                    </div>
+                    <div id="zone-list-sidebar" style="max-height: 400px; overflow-y: auto; background: var(--bg-main); padding: 1rem; border-radius: var(--radius-sm);">
+                        <h4 style="margin-bottom: 1rem; font-size: 0.9rem;">Zones:</h4>
+                        <div id="zones-list-items">
+                            <!-- Zone items will be added here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 1rem;">
+                <button type="button" onclick="saveZones()" class="btn-primary" style="flex: 1;">Save All Zones</button>
+                <button type="button" onclick="closeZoneModal()" class="btn-outline">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>

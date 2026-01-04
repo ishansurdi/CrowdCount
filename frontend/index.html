@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CrowdCount | Premium Monitoring</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Handcrafted Premium Light Palette - No Gradients */
+            --bg-main: #fcfcfd;
+            --surface: #ffffff;
+            --border: #eaecf0;
+            --border-strong: #d0d5dd;
+            
+            --text-primary: #101828;
+            --text-secondary: #475467;
+            --text-tertiary: #667085;
+            
+            --accent: #444ce7;
+            --accent-soft: #eef4ff;
+            --accent-hover: #3538cd;
+            
+            --success: #067647;
+            --success-bg: #ecfdf3;
+            --danger: #b42318;
+            --danger-bg: #fef3f2;
+            --warning: #b54708;
+            --warning-bg: #fffaeb;
+            
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            
+            --shadow-sm: 0px 1px 2px rgba(16, 24, 40, 0.05);
+            --shadow-md: 0px 4px 6px -2px rgba(16, 24, 40, 0.03), 0px 12px 16px -4px rgba(16, 24, 40, 0.08);
+            
+            font-family: 'Inter', -apple-system, sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            line-height: 1.5;
+            padding: 2rem;
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header Styles */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 2.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-title h1 {
+            font-size: 1.875rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title p {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-top: 4px;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 100px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #d1d5db;
+        }
+
+        .dot.active { background-color: #10b981; box-shadow: 0 0 0 4px #ecfdf3; }
+
+        /* Grid Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 1.5rem;
+        }
+
+        .col-12 { grid-column: span 12; }
+        .col-8 { grid-column: span 8; }
+        .col-4 { grid-column: span 4; }
+
+        /* Card Styles */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.25rem;
+        }
+
+        .card-header h2 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* Metric Typography */
+        .metric-main {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.03em;
+            margin: 0.5rem 0;
+        }
+
+        .metric-sub {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        /* Zone Mini Grid */
+        .zone-mini-list {
+            margin-top: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .zone-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: var(--bg-main);
+            border-radius: var(--radius-sm);
+            font-size: 0.8125rem;
+        }
+
+        .zone-name { font-weight: 500; color: var(--text-secondary); }
+        .zone-val { font-weight: 700; color: var(--text-primary); }
+
+        /* Threshold Config */
+        .config-grid {
+            display: flex;
+            align-items: flex-end;
+            gap: 1rem;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .input-group label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+        }
+
+        input[type="number"] {
+            padding: 10px 14px;
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-soft);
+        }
+
+        /* Buttons */
+        button {
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 600;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+            padding: 10px 18px;
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+        }
+
+        .btn-primary:hover { background: var(--accent-hover); }
+
+        .btn-outline {
+            background: white;
+            border: 1px solid var(--border-strong);
+            color: var(--text-secondary);
+            padding: 10px 18px;
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-outline:hover {
+            background: var(--bg-main);
+            color: var(--text-primary);
+        }
+
+        /* Status Row */
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .status-row:last-child { border: 0; }
+        .status-label { font-size: 0.875rem; color: var(--text-secondary); }
+        .status-value { font-size: 0.875rem; font-weight: 600; color: var(--text-primary); }
+
+        /* Alert System */
+        .alert-popup {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            width: 400px;
+            background: white;
+            border: 2px solid var(--danger);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
+            z-index: 1000;
+            transform: translateX(120%);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .alert-popup.visible { transform: translateX(0); }
+
+        .alert-content h3 { color: var(--danger); font-size: 1.125rem; margin-bottom: 0.5rem; }
+        .alert-content p { color: var(--text-secondary); font-size: 0.9375rem; margin-bottom: 1.25rem; line-height: 1.6; }
+
+        .cooldown-bar {
+            height: 4px;
+            background: var(--danger-bg);
+            border-radius: 2px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+
+        .cooldown-progress {
+            height: 100%;
+            background: var(--danger);
+            width: 100%;
+        }
+
+        /* Chart Adjustments */
+        canvas {
+            max-height: 300px;
+        }
+
+        .hidden { display: none; }
+
+        @media (max-width: 1024px) {
+            .col-8, .col-4 { grid-column: span 12; }
+            .config-grid { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-container">
+        <header>
+            <div class="header-title">
+                <h1>CrowdCount Monitoring</h1>
+                <p>Enterprise multi-area analytics engine</p>
+            </div>
+            <div class="header-controls">
+                <div class="status-badge">
+                    <span id="status-dot" class="dot"></span>
+                    <span id="status-text">Connecting</span>
+                </div>
+                <div class="metric-sub">
+                    Updated <span id="last-update">--:--</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="dashboard-grid">
+            
+            <!-- Admin: User Management (Admin Only) -->
+            <div class="card col-12" data-role="admin" style="display: none;">
+                <div class="card-header">
+                    <h2>👥 User Management</h2>
+                    <button class="btn-primary" onclick="dashboard.openUserModal()">+ Add New User</button>
+                </div>
+                <div id="users-table-container">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="text-align: left; border-bottom: 2px solid var(--border);">
+                                <th style="padding: 0.75rem;">Name</th>
+                                <th style="padding: 0.75rem;">Email</th>
+                                <th style="padding: 0.75rem;">Role</th>
+                                <th style="padding: 0.75rem;">Assigned Areas</th>
+                                <th style="padding: 0.75rem;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-table-body">
+                            <tr><td colspan="5" style="text-align: center; padding: 2rem;">Loading users...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Admin: Global Threshold Config (Admin Only) -->
+            <div class="card col-12" data-role="admin" style="display: none;">
+                <div class="card-header">
+                    <h2>⚙️ Global Threshold Configuration</h2>
+                </div>
+                <div class="config-grid">
+                    <div class="input-group">
+                        <label>People Count Threshold (Applies to All Areas)</label>
+                        <input type="number" id="threshold-global" value="50" min="1">
+                    </div>
+                    <button class="btn-primary" onclick="dashboard.updateGlobalThreshold()">Apply Threshold</button>
+                </div>
+            </div>
+
+            <!-- Live Areas Container (Dynamic based on user permissions) -->
+            <div id="live-areas-container" class="col-12" style="display: contents;">
+            <!-- Live Areas -->
+            <div class="card col-4" data-area="entrance">
+                <div class="card-header">
+                    <h2>Mall Entrance</h2>
+                    <span class="status-badge" id="badge-entrance" style="font-size: 0.7rem;">Loading</span>
+                </div>
+                <div class="metric-main" id="live-count-entrance">--</div>
+                <div class="metric-sub">Current Occupancy</div>
+                <div class="zone-mini-list" id="zones-entrance">
+                    <div class="zone-item">
+                        <span class="zone-name">Loading...</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card col-4" data-area="retail">
+                <div class="card-header">
+                    <h2>Retail Area</h2>
+                    <span class="status-badge" id="badge-retail" style="font-size: 0.7rem;">Loading</span>
+                </div>
+                <div class="metric-main" id="live-count-retail">--</div>
+                <div class="metric-sub">Current Occupancy</div>
+                <div class="zone-mini-list" id="zones-retail">
+                    <div class="zone-item">
+                        <span class="zone-name">Loading...</span>
+                    </div>
+                </div>
+            </div>
+
+            </div>
+            
+            <div class="card col-4" data-area="foodcourt">
+                <div class="card-header">
+                    <h2>Food Court</h2>
+                    <span class="status-badge" id="badge-foodcourt" style="font-size: 0.7rem;">Loading</span>
+                </div>
+                <div class="metric-main" id="live-count-foodcourt">--</div>
+                <div class="metric-sub">Current Occupancy</div>
+                <div class="zone-mini-list" id="zones-foodcourt">
+                    <div class="zone-item">
+                        <span class="zone-name">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            </div><!-- End live-areas-container -->
+
+            <!-- Distribution Chart -->
+            <div class="card col-8">
+                <div class="card-header">
+                    <h2>Zone Distribution (All Areas)</h2>
+                </div>
+                <canvas id="zoneBarChart"></canvas>
+            </div>
+
+            <!-- System Info -->
+            <div class="card col-4">
+                <div class="card-header">
+                    <h2>System Diagnostics</h2>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">API Gateway</span>
+                    <span class="status-value" id="diag-api">Connecting...</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Stream Latency</span>
+                    <span class="status-value" id="diag-latency">-- ms</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Sampling Rate</span>
+                    <span class="status-value">0.5 Hz</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Total Records</span>
+                    <span class="status-value" id="diag-records">0</span>
+                </div>
+                <div id="export-buttons-container" style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 12px;">
+                    <!-- Export buttons will be generated dynamically based on user's areas -->
+                </div>
+            </div>
+
+            <!-- History Chart -->
+            <div class="card col-12">
+                <div class="card-header">
+                    <h2>Temporal Trends (All Areas Aggregated)</h2>
+                </div>
+                <canvas id="historyLineChart"></canvas>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Alert Modal -->
+    <div id="alert-popup" class="alert-popup">
+        <div class="alert-content">
+            <h3>⚠️ Threshold Alert</h3>
+            <p id="alert-message">Occupancy levels have exceeded set limits.</p>
+            <div class="cooldown-bar">
+                <div id="cooldown-progress" class="cooldown-progress"></div>
+            </div>
+            <button id="close-alert-btn" class="btn-primary" style="width: 100%; background: var(--danger);">Acknowledge (20s cooldown)</button>
+        </div>
+    </div>
+
+    <!-- User Management Modal (Admin Only) -->
+    <div id="user-modal" class="alert-popup">
+        <div class="alert-content" style="max-width: 600px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3 id="user-modal-title">Add New User</h3>
+                <button onclick="dashboard.closeUserModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary);">&times;</button>
+            </div>
+            <form id="user-form" onsubmit="dashboard.saveUser(event)">
+                <input type="hidden" id="user-id" value="">
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div>
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-secondary);">Name</label>
+                        <input type="text" id="user-name" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 1rem;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-secondary);">Email</label>
+                        <input type="email" id="user-email" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 1rem;">
+                    </div>
+                    <div id="password-field">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-secondary);">Password</label>
+                        <input type="password" id="user-password" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 1rem;">
+                        <small style="color: var(--text-tertiary);">Leave blank to keep existing password</small>
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-secondary);">Role</label>
+                        <select id="user-role" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 1rem;">
+                            <option value="user">User</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-secondary);">Assign Areas</label>
+                        <div id="areas-checkboxes" style="display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem; background: var(--bg-main); border-radius: var(--radius-sm);">
+                            <label style=\"display: flex; align-items: center; gap: 0.5rem;\">
+                                <input type=\"checkbox\" name=\"area\" value=\"entrance\"> Mall Entrance
+                            </label>
+                            <label style=\"display: flex; align-items: center; gap: 0.5rem;\">
+                                <input type=\"checkbox\" name=\"area\" value=\"retail\"> Retail Area
+                            </label>
+                            <label style=\"display: flex; align-items: center; gap: 0.5rem;\">
+                                <input type=\"checkbox\" name=\"area\" value=\"foodcourt\"> Food Court
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                    <button type="submit" class="btn-primary" style="flex: 1;">Save User</button>
+                    <button type="button" onclick="dashboard.closeUserModal()" class="btn-outline" style="flex: 1;">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

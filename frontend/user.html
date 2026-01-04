@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Portal | CrowdCount</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-main: #fcfcfd;
+            --surface: #ffffff;
+            --border: #eaecf0;
+            --text-primary: #101828;
+            --text-secondary: #475467;
+            --text-tertiary: #667085;
+            --accent: #444ce7;
+            --accent-soft: #eef4ff;
+            --success: #067647;
+            --success-bg: #ecfdf3;
+            --danger: #b42318;
+            --danger-bg: #fef3f2;
+            --warning: #b54708;
+            --warning-bg: #fffaeb;
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --shadow-sm: 0px 1px 2px rgba(16, 24, 40, 0.05);
+            --shadow-md: 0px 4px 6px -2px rgba(16, 24, 40, 0.03), 0px 12px 16px -4px rgba(16, 24, 40, 0.08);
+            font-family: 'Inter', -apple-system, sans-serif;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+        body { background-color: var(--bg-main); color: var(--text-primary); line-height: 1.5; padding: 2rem; }
+        .dashboard-container { max-width: 1400px; margin: 0 auto; }
+        
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 2px solid var(--border); }
+        .header-title h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; display: flex; align-items: center; gap: 12px; }
+        .header-title h1::before { content: '👤'; font-size: 1.5rem; }
+        .header-title p { color: var(--text-secondary); font-size: 0.875rem; margin-top: 4px; }
+        .user-info { display: flex; align-items: center; gap: 1rem; }
+        .user-badge { background: var(--success-bg); color: var(--success); padding: 0.5rem 1rem; border-radius: var(--radius-sm); font-weight: 600; font-size: 0.875rem; }
+        .btn-logout { padding: 0.5rem 1rem; background: var(--danger); color: white; border: none; border-radius: var(--radius-sm); cursor: pointer; font-weight: 500; }
+        
+        .dashboard-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1.5rem; }
+        .col-12 { grid-column: span 12; }
+        .col-6 { grid-column: span 6; }
+        .col-4 { grid-column: span 4; }
+        
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.5rem; box-shadow: var(--shadow-sm); }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
+        .card-header h2 { font-size: 1.125rem; font-weight: 600; }
+        
+        .metric-main { font-size: 3rem; font-weight: 700; line-height: 1; }
+        .metric-sub { color: var(--text-tertiary); font-size: 0.875rem; margin-top: 0.5rem; }
+        .status-badge { padding: 4px 10px; border-radius: 100px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
+        
+        .zone-mini-list { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; }
+        .zone-item { display: flex; justify-content: space-between; padding: 0.5rem; background: var(--bg-main); border-radius: var(--radius-sm); }
+        .zone-name { color: var(--text-secondary); font-size: 0.875rem; }
+        .zone-val { color: var(--text-primary); font-weight: 600; font-size: 0.875rem; }
+        
+        .status-row { display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid var(--border); }
+        .status-label { color: var(--text-secondary); font-size: 0.875rem; }
+        .status-value { color: var(--text-primary); font-weight: 600; font-size: 0.875rem; }
+        
+        .btn-outline { padding: 0.75rem 1.5rem; background: transparent; color: var(--accent); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; font-weight: 500; }
+        
+        canvas { max-height: 300px; }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <header>
+            <div class="header-title">
+                <div>
+                    <h1>My Dashboard</h1>
+                    <p>Monitor your assigned areas</p>
+                </div>
+            </div>
+            <div class="user-info">
+                <span class="user-badge" id="user-name">User</span>
+                <button class="btn-logout" onclick="logout()">Logout</button>
+            </div>
+        </header>
+
+        <main class="dashboard-grid">
+            
+            <!-- Info Banner -->
+            <div class="card col-12" style="background: var(--accent-soft); border-color: var(--accent);">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <span style="font-size: 2rem;">ℹ️</span>
+                    <div>
+                        <h3 style="font-size: 1rem; font-weight: 600; color: var(--accent);">You are viewing areas approved by administrator</h3>
+                        <p style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 0.25rem;">Only areas with user visibility enabled are shown</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Threshold Alert Banner (Hidden by default) -->
+            <div class="card col-12" id="threshold-alert" style="display: none; background: var(--danger-bg); border-color: var(--danger);">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <span style="font-size: 2rem;">⚠️</span>
+                    <div style="flex: 1;">
+                        <h3 style="font-size: 1rem; font-weight: 600; color: var(--danger);">Threshold Exceeded</h3>
+                        <p id="threshold-message" style="font-size: 0.875rem; color: var(--text-primary); margin-top: 0.25rem;"></p>
+                    </div>
+                    <button onclick="dismissAlert()" style="padding: 0.5rem 1rem; background: var(--danger); color: white; border: none; border-radius: var(--radius-sm); cursor: pointer; font-weight: 500;">Dismiss</button>
+                </div>
+            </div>
+
+            <!-- Live Areas (Dynamic based on admin permissions) -->
+            <div id="areas-container" style="display: contents;">
+                <!-- Will be populated dynamically -->
+            </div>
+
+            <!-- Current Occupancy Chart -->
+            <div class="card col-12">
+                <div class="card-header">
+                    <h2>📊 Current Occupancy</h2>
+                    <p style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 0.25rem;">Real-time people count</p>
+                </div>
+                <canvas id="barChart"></canvas>
+            </div>
+
+            <!-- System Info -->
+            <div class="card col-12">
+                <div class="card-header">
+                    <h2>System Status</h2>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                    <div class="status-row">
+                        <span class="status-label">API Gateway</span>
+                        <span class="status-value" id="api-status">Connecting...</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="status-label">Threshold</span>
+                        <span class="status-value" id="threshold-value">--</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="status-label">Visible Areas</span>
+                        <span class="status-value" id="visible-areas">0</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="status-label">Last Update</span>
+                        <span class="status-value" id="last-update">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Threshold Violation History -->
+            <div class="card col-12">
+                <div class="card-header">
+                    <h2>📋 Recent Threshold Violations</h2>
+                    <p style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 0.25rem;">History of when occupancy exceeded the threshold</p>
+                </div>
+                <div id="violations-list" style="max-height: 300px; overflow-y: auto;">
+                    <p style="text-align: center; color: var(--text-secondary); padding: 2rem;">Loading violations...</p>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script src="user.js"></script>
+</body>
+</html>
